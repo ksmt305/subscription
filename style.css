@@ -1,0 +1,108 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header {
+    background-color: #333;
+    color: #fff;
+    padding: 1rem 0;
+    text-align: center;
+}
+
+main {
+    flex: 1;
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+footer {
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 1rem 0;
+    margin-top: auto;
+}
+
+#login-view, #user-view {
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+h2 {
+    margin-top: 0;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 0.5rem;
+}
+
+/* Google Sign-in Button */
+.g_id_signin {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+}
+
+#subscription-status {
+    font-weight: bold;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+}
+
+#subscription-status.active {
+    color: #fff;
+    background-color: #28a745; /* 緑 */
+}
+
+#subscription-status.inactive {
+    color: #fff;
+    background-color: #dc3545; /* 赤 */
+}
+
+#member-content {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: #eaf7ff;
+    border: 1px solid #bde0ff;
+    border-radius: 5px;
+}
+
+button {
+    display: inline-block;
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#logout-button {
+    background-color: #6c757d;
+    margin-top: 1rem;
+}
+
+#logout-button:hover {
+    background-color: #5a6268;
+}
+
+#subscribe-button-container {
+    margin-top: 1.5rem;
+}
