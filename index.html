@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>サブスクリプションサービス</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>サブスクリプションサービス</h1>
+    </header>
+
+    <main>
+        <div id="login-view">
+            <h2>ログインしてください</h2>
+            <div id="g_id_onload"
+                 data-client_id="YOUR_GOOGLE_CLIENT_ID"
+                 data-callback="handleCredentialResponse">
+            </div>
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-shape="rectangular"
+                 data-theme="outline"
+                 data-text="signin_with"
+                 data-size="large"
+                 data-logo_alignment="left">
+            </div>
+        </div>
+
+        <div id="user-view" style="display:none;">
+            <h2 id="welcome-message"></h2>
+            <p>サブスクリプション状況: <span id="subscription-status"></span></p>
+            <div id="subscribe-button-container">
+                <button id="subscribe-button">月額1000円で登録する</button>
+            </div>
+            <div id="member-content" style="display:none;">
+                <h3>会員限定コンテンツ</h3>
+                <p>ご登録ありがとうございます！限定コンテンツをお楽しみください。</p>
+            </div>
+            <button id="logout-button">ログアウト</button>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 サブスクリプションサービス</p>
+    </footer>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="script.js"></script>
+</body>
+</html>
