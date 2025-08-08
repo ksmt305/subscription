@@ -40,6 +40,7 @@ function parseJwt(token) {
         }).join(''));
         return JSON.parse(jsonPayload);
     } catch (e) {
+        console.error('JWT parse error:', e);
         return null;
     }
 }
@@ -48,14 +49,24 @@ function parseJwt(token) {
  * サーバーにサブスクリプションの状態を確認する (form-submit方式)
  */
 function checkSubscriptionStatus() {
-    if (!googleUser) return;
+    if (!googleUser) {
+        console.error('Google user not found');
+        return;
+    }
+
+    // 既存のフォームがあれば削除
+    const existingForm = document.getElementById('temp-check-form');
+    if (existingForm) {
+        existingForm.remove();
+    }
 
     // 動的にフォームを作成
     const form = document.createElement('form');
+    form.id = 'temp-check-form';
     form.method = 'POST';
     form.action = GAS_WEB_APP_URL;
-    form.target = 'hidden_iframe'; // 非表示のiframeをターゲットに
-    form.style.display = 'none'; // フォーム自体は表示しない
+    form.target = 'hidden_iframe';
+    form.style.display = 'none';
 
     // パラメータを設定
     const params = {
@@ -72,29 +83,44 @@ function checkSubscriptionStatus() {
     }
 
     document.body.appendChild(form);
+    
+    // フォーム送信前にローディング状態を表示
+    updateSubscriptionUI(false, 'loading');
+    
     form.submit();
-    // フォームは送信後に削除しても良いが、iframeがロードされるまで残しておく方が安全な場合もある
-    // document.body.removeChild(form); 
+    
+    // フォーム送信後、少し時間をおいてから削除
+    setTimeout(() => {
+        if (document.getElementById('temp-check-form')) {
+            document.getElementById('temp-check-form').remove();
+        }
+    }, 5000);
 }
 
 /**
  * サブスクリプションの状態に応じてUIを更新する
  */
-function updateSubscriptionUI(isSubscribed) {
+function updateSubscriptionUI(isSubscribed, status = null) {
     const statusEl = document.getElementById('subscription-status');
     const subscribeButtonContainer = document.getElementById('subscribe-button-container');
     const memberContent = document.getElementById('member-content');
 
+    if (status === 'loading') {
+        statusEl.textContent = '確認中...';
+        statusEl.className = 'loading';
+        subscribeButtonContainer.style.display = 'none';
+        memberContent.style.display = 'none';
+        return;
+    }
+
     if (isSubscribed) {
         statusEl.textContent = '有効';
-        statusEl.classList.add('active');
-        statusEl.classList.remove('inactive');
+        statusEl.className = 'active';
         subscribeButtonContainer.style.display = 'none';
         memberContent.style.display = 'block';
     } else {
         statusEl.textContent = '未登録';
-        statusEl.classList.add('inactive');
-        statusEl.classList.remove('active');
+        statusEl.className = 'inactive';
         subscribeButtonContainer.style.display = 'block';
         memberContent.style.display = 'none';
     }
@@ -104,49 +130,155 @@ function updateSubscriptionUI(isSubscribed) {
  * ログアウト処理
  */
 function logout() {
-    google.accounts.id.disableAutoSelect();
+    try {
+        if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+            google.accounts.id.disableAutoSelect();
+        }
+    } catch (e) {
+        console.warn('Google sign out error:', e);
+    }
+    
     googleUser = null;
     document.getElementById('login-view').style.display = 'block';
     document.getElementById('user-view').style.display = 'none';
     document.getElementById('subscription-status').textContent = '';
-    document.getElementById('subscription-status').classList.remove('active', 'inactive');
+    document.getElementById('subscription-status').className = '';
     document.getElementById('member-content').style.display = 'none';
-    document.getElementById('subscribe-button-container').style.display = 'block'; // ログアウト後も表示
+    document.getElementById('subscribe-button-container').style.display = 'block';
+}
+
+/**
+ * URLパラメータから決済完了を検出
+ */
+function checkPaymentSuccess() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session_id');
+    
+    if (sessionId) {
+        // 決済完了後、URLをクリーンアップ
+        const url = new URL(window.location);
+        url.searchParams.delete('session_id');
+        window.history.replaceState({}, document.title, url);
+        
+        // 決済完了メッセージを表示
+        setTimeout(() => {
+            alert('決済が完了しました！サブスクリプションが有効になりました。');
+            // ステータスを再確認
+            if (googleUser) {
+                checkSubscriptionStatus();
+            }
+        }, 1000);
+    }
 }
 
 // --- イベントリスナー ---
 document.addEventListener('DOMContentLoaded', () => {
+    // 決済完了チェック
+    checkPaymentSuccess();
+    
     // ログアウトボタン
-    document.getElementById('logout-button').addEventListener('click', logout);
+    const logoutButton = document.getElementById('logout-button');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', logout);
+    }
+
+    // 購読フォームの送信処理
+    const checkoutForm = document.getElementById('checkout-form');
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', function(e) {
+            if (!googleUser || !googleUser.id_token) {
+                e.preventDefault();
+                alert('ログインが必要です。');
+                return false;
+            }
+            
+            // フォーム送信前に確認
+            if (!confirm('月額1000円のサブスクリプションに登録しますか？')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    }
 
     // GASからのメッセージ(postMessage)を受信
     window.addEventListener('message', (event) => {
-        // 送信元のオリジンを確認 (セキュリティ対策)
-        const gasOrigin = new URL(GAS_WEB_APP_URL).origin;
-        // 開発中はevent.originが異なる場合があるので、本番デプロイ時に厳密にチェック
-        if (event.origin !== gasOrigin) {
-            // console.warn("Received message from unknown origin:", event.origin);
-            // return;
+        // 開発環境では origin チェックを緩和
+        const isDevelopment = window.location.hostname === 'localhost' || 
+                             window.location.hostname === '127.0.0.1' ||
+                             window.location.protocol === 'file:';
+        
+        if (!isDevelopment && GAS_WEB_APP_URL) {
+            try {
+                const gasOrigin = new URL(GAS_WEB_APP_URL).origin;
+                if (event.origin !== gasOrigin && !event.origin.includes('script.google.com')) {
+                    console.warn("Received message from unknown origin:", event.origin);
+                    return;
+                }
+            } catch (e) {
+                console.warn("Origin check failed:", e);
+            }
         }
 
         try {
-            const data = event.data; // JSON.parseはGAS側で行うため不要
+            let data = event.data;
+            
+            // データが文字列の場合はパース
+            if (typeof data === 'string') {
+                try {
+                    data = JSON.parse(data);
+                } catch (parseError) {
+                    console.error('Failed to parse message data:', parseError);
+                    return;
+                }
+            }
+
+            console.log('Received message:', data);
 
             if (data && data.action === 'checkStatusResult') {
                 if (data.status === 'success') {
                     updateSubscriptionUI(data.isSubscribed);
                 } else {
                     console.error('ステータスの確認に失敗しました:', data.message);
-                    alert(data.message || 'ステータスの確認に失敗しました。');
+                    updateSubscriptionUI(false);
+                    if (data.message) {
+                        alert('ステータス確認エラー: ' + data.message);
+                    }
                 }
             } else if (data && data.action === 'error') {
-                console.error('GASでエラーが発生しました:', data.message);
-                alert(data.message || 'GASでエラーが発生しました。');
+                console.error('GASでエラーが発生しました:', data);
+                updateSubscriptionUI(false);
+                alert('エラーが発生しました: ' + (data.message || 'Unknown error'));
+            } else {
+                console.log('Unknown message action:', data);
             }
 
         } catch (error) {
             console.error('Message handling error:', error);
-            alert('メッセージ処理中にエラーが発生しました。');
+            updateSubscriptionUI(false);
+            alert('メッセージ処理中にエラーが発生しました: ' + error.message);
         }
     });
+
+    // iframeのロードエラーをキャッチ
+    const hiddenIframe = document.querySelector('iframe[name="hidden_iframe"]');
+    if (hiddenIframe) {
+        hiddenIframe.addEventListener('error', (e) => {
+            console.error('iframe load error:', e);
+            updateSubscriptionUI(false);
+            alert('通信エラーが発生しました。しばらく待ってから再度お試しください。');
+        });
+        
+        hiddenIframe.addEventListener('load', () => {
+            console.log('iframe loaded');
+        });
+    }
+});
+
+// グローバルエラーハンドラー
+window.addEventListener('error', (e) => {
+    console.error('Global error:', e.error);
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+    console.error('Unhandled promise rejection:', e.reason);
 });
