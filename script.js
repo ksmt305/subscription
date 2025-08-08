@@ -58,42 +58,29 @@ function parseJwt(token) {
 async function checkSubscriptionStatus() {
     if (!googleUser) return;
 
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = GAS_WEB_APP_URL;
-    form.target = 'hidden_iframe';
+    try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'checkStatus',
+                id_token: googleUser.id_token
+            }),
+        });
 
-    const params = {
-        action: 'checkStatus',
-        id_token: googleUser.id_token
-    };
+        const result = await response.json();
 
-    for (const key in params) {
-        const hiddenField = document.createElement('input');
-        hiddenField.type = 'hidden';
-        hiddenField.name = key;
-        hiddenField.value = params[key];
-        form.appendChild(hiddenField);
-    }
-
-    document.body.appendChild(form);
-    form.submit();
-
-    // メッセージリスナーでGASからの結果を受け取る
-    window.addEventListener('message', function(e) {
-        if (e.origin !== new URL(GAS_WEB_APP_URL).origin) return;
-        try {
-            const result = JSON.parse(e.data);
-            if (result.status === 'success') {
-                updateSubscriptionUI(result.isSubscribed);
-            } else {
-                throw new Error(result.message || 'ステータスの確認に失敗しました。');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert(error.message);
+        if (result.status === 'success') {
+            updateSubscriptionUI(result.isSubscribed);
+        } else {
+            throw new Error(result.message || 'ステータスの確認に失敗しました。');
         }
-    }, { once: true });
+    } catch (error) {
+        console.error('Error:', error);
+        alert(error.message);
+    }
 }
 
 /**
