@@ -32,7 +32,10 @@
             <h2 id="welcome-message"></h2>
             <p>サブスクリプション状況: <span id="subscription-status"></span></p>
             <div id="subscribe-button-container">
-                <button id="subscribe-button">月額1000円で登録する</button>
+                <form id="checkout-form" method="POST" action="YOUR_GAS_WEB_APP_URL" target="hidden_iframe" onsubmit="submitted=true;">
+                    <input type="hidden" name="id_token" id="id_token_field">
+                    <button type="submit" id="subscribe-button">月額1000円で登録する</button>
+                </form>
             </div>
             <div id="member-content" style="display:none;">
                 <h3>会員限定コンテンツ</h3>
@@ -41,6 +44,8 @@
             <button id="logout-button">ログアウト</button>
         </div>
     </main>
+
+    <iframe name="hidden_iframe" style="display:none;"></iframe>
 
     <footer>
         <p>&copy; 2024 サブスクリプションサービス</p>
