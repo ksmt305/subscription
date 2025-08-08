@@ -32,8 +32,9 @@
             <h2 id="welcome-message"></h2>
             <p>サブスクリプション状況: <span id="subscription-status"></span></p>
             <div id="subscribe-button-container">
-                <form id="checkout-form" method="POST" action="YOUR_GAS_WEB_APP_URL" target="hidden_iframe" onsubmit="submitted=true;">
+                <form id="checkout-form" method="POST" action="YOUR_GAS_WEB_APP_URL" target="hidden_iframe">
                     <input type="hidden" name="id_token" id="id_token_field">
+                    <input type="hidden" name="action" value="createCheckoutSession">
                     <button type="submit" id="subscribe-button">月額1000円で登録する</button>
                 </form>
             </div>
@@ -55,3 +56,4 @@
     <script src="script.js"></script>
 </body>
 </html>
+    
