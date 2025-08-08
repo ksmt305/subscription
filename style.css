@@ -58,6 +58,9 @@ h2 {
     font-weight: bold;
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
+    display: inline-block;
+    min-width: 60px;
+    text-align: center;
 }
 
 #subscription-status.active {
@@ -68,6 +71,21 @@ h2 {
 #subscription-status.inactive {
     color: #fff;
     background-color: #dc3545; /* 赤 */
+}
+
+#subscription-status.loading {
+    color: #fff;
+    background-color: #ffc107; /* 黄色 */
+    animation: pulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0.5;
+    }
 }
 
 #member-content {
@@ -88,11 +106,17 @@ button, .btn-custom {
     cursor: pointer;
     font-size: 1rem;
     transition: background-color 0.3s;
-    text-decoration: none; /* for link-like buttons */
+    text-decoration: none;
 }
 
 button:hover, .btn-custom:hover {
     background-color: #0056b3;
+}
+
+button:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 #logout-button {
@@ -108,6 +132,18 @@ button:hover, .btn-custom:hover {
     margin-top: 1.5rem;
 }
 
+#subscribe-button {
+    background-color: #0d47a1;
+    color: white;
+    font-weight: bold;
+    padding: 12px 24px;
+    font-size: 1.1rem;
+}
+
+#subscribe-button:hover {
+    background-color: #2e7d32;
+}
+
 .btn-custom {
     background-color: #0d47a1;
     color: white;
@@ -116,4 +152,55 @@ button:hover, .btn-custom:hover {
 .btn-custom:hover {
     background-color: #2e7d32;
     color: white;
+}
+
+/* エラーメッセージ用スタイル */
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 0.75rem;
+    margin: 1rem 0;
+    border: 1px solid #f5c6cb;
+    border-radius: 0.25rem;
+}
+
+.success-message {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 0.75rem;
+    margin: 1rem 0;
+    border: 1px solid #c3e6cb;
+    border-radius: 0.25rem;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    main {
+        padding: 1rem;
+    }
+    
+    #login-view, #user-view {
+        padding: 1rem;
+    }
+    
+    button, .btn-custom {
+        width: 100%;
+        padding: 12px;
+        font-size: 1rem;
+    }
+    
+    #subscribe-button {
+        padding: 15px;
+    }
+}
+
+/* 非表示iframe用のスタイル */
+iframe[name="hidden_iframe"] {
+    position: absolute !important;
+    left: -9999px !important;
+    top: -9999px !important;
+    width: 1px !important;
+    height: 1px !important;
+    border: none !important;
+    visibility: hidden !important;
 }
