@@ -4,6 +4,7 @@ const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzuKRa72ZKOUhH5
 // --- 設定項目ここまで ---
 
 let googleUser = null;
+let submitted = false;
 
 /**
  * Googleログイン後のコールバック関数
@@ -27,6 +28,7 @@ function handleCredentialResponse(response) {
     document.getElementById('login-view').style.display = 'none';
     document.getElementById('user-view').style.display = 'block';
     document.getElementById('welcome-message').textContent = `ようこそ、${googleUser.name}さん`;
+    document.getElementById('id_token_field').value = googleUser.id_token;
 
     // サーバーにユーザー情報を送信してサブスク状態を確認
     checkSubscriptionStatus();
@@ -56,29 +58,42 @@ function parseJwt(token) {
 async function checkSubscriptionStatus() {
     if (!googleUser) return;
 
-    try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'checkStatus',
-                id_token: googleUser.id_token
-            }),
-        });
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = GAS_WEB_APP_URL;
+    form.target = 'hidden_iframe';
 
-        const result = await response.json();
+    const params = {
+        action: 'checkStatus',
+        id_token: googleUser.id_token
+    };
 
-        if (result.status === 'success') {
-            updateSubscriptionUI(result.isSubscribed);
-        } else {
-            throw new Error(result.message || 'ステータスの確認に失敗しました。');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert(error.message);
+    for (const key in params) {
+        const hiddenField = document.createElement('input');
+        hiddenField.type = 'hidden';
+        hiddenField.name = key;
+        hiddenField.value = params[key];
+        form.appendChild(hiddenField);
     }
+
+    document.body.appendChild(form);
+    form.submit();
+
+    // メッセージリスナーでGASからの結果を受け取る
+    window.addEventListener('message', function(e) {
+        if (e.origin !== new URL(GAS_WEB_APP_URL).origin) return;
+        try {
+            const result = JSON.parse(e.data);
+            if (result.status === 'success') {
+                updateSubscriptionUI(result.isSubscribed);
+            } else {
+                throw new Error(result.message || 'ステータスの確認に失敗しました。');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert(error.message);
+        }
+    }, { once: true });
 }
 
 /**
@@ -120,42 +135,24 @@ function logout() {
     document.getElementById('subscribe-button-container').style.display = 'none';
 }
 
+function redirectIfSubmitted() {
+  if (submitted) {
+    // 決済ページへのリダイレクトはGAS側で行うため、ここでは何もしない
+    // もしくは、成功メッセージを表示するなど
+    console.log("Form submitted");
+    submitted = false; // Reset for next time
+    // 必要であれば、ここでサブスクリプションの状態を再チェック
+    setTimeout(checkSubscriptionStatus, 1000); // 少し待ってからステータス確認
+  }
+}
+
 
 // --- イベントリスナー ---
 document.addEventListener('DOMContentLoaded', () => {
     // ログアウトボタン
     document.getElementById('logout-button').addEventListener('click', logout);
 
-    // サブスク登録ボタン
-    document.getElementById('subscribe-button').addEventListener('click', async () => {
-        if (!googleUser) {
-            alert('ログインしてください。');
-            return;
-        }
-
-        try {
-            const response = await fetch(GAS_WEB_APP_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'createCheckoutSession',
-                    id_token: googleUser.id_token
-                }),
-            });
-
-            const result = await response.json();
-
-            if (result.status === 'success' && result.checkoutUrl) {
-                // StripeのCheckoutページにリダイレクト
-                window.location.href = result.checkoutUrl;
-            } else {
-                throw new Error(result.message || '決済ページの作成に失敗しました。');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert(error.message);
-        }
-    });
+    // iframeのロードイベントを監視
+    const iframe = document.querySelector('iframe[name="hidden_iframe"]');
+    iframe.onload = redirectIfSubmitted;
 });
