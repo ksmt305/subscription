@@ -1,21 +1,16 @@
 // --- 設定項目 ---
 // GAS(Google Apps Script)のWebアプリのURL
-const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyOI0S7-BGZK8VBYWxphPA5DRL9qZfQ6V4IhzPuCDITadKBOf4loppkvP0Wqw5oThcd/exec';
+const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxH7OOb3gTXxzXXGaJ6Prp2f8yNjlSghU0-ead3PYvSg3CY3nssnH6nEMcv3k3Oi4Vc/exec';
 // --- 設定項目ここまで ---
 
 let googleUser = null;
-let submitted = false;
 
 /**
  * Googleログイン後のコールバック関数
- * @param {object} response 認証情報レスポンス
  */
 function handleCredentialResponse(response) {
-    // IDトークンをデコードしてユーザー情報を取得（簡易的な方法）
     const id_token = response.credential;
     const userProfile = parseJwt(id_token);
-    console.log("ID Token: " + id_token);
-    console.log('User Profile: ', userProfile);
 
     googleUser = {
         id: userProfile.sub,
@@ -24,20 +19,16 @@ function handleCredentialResponse(response) {
         id_token: id_token
     };
 
-    // UIを更新
     document.getElementById('login-view').style.display = 'none';
     document.getElementById('user-view').style.display = 'block';
     document.getElementById('welcome-message').textContent = `ようこそ、${googleUser.name}さん`;
     document.getElementById('id_token_field').value = googleUser.id_token;
 
-    // サーバーにユーザー情報を送信してサブスク状態を確認
     checkSubscriptionStatus();
 }
 
 /**
  * JWTをデコードする
- * @param {string} token JWT
- * @returns {object} ペイロード
  */
 function parseJwt(token) {
     try {
@@ -53,39 +44,39 @@ function parseJwt(token) {
 }
 
 /**
- * サーバーにサブスクリプションの状態を確認する
+ * サーバーにサブスクリプションの状態を確認する (form-submit方式)
  */
-async function checkSubscriptionStatus() {
+function checkSubscriptionStatus() {
     if (!googleUser) return;
 
-    try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'checkStatus',
-                id_token: googleUser.id_token
-            }),
-        });
+    // 動的にフォームを作成
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = GAS_WEB_APP_URL;
+    form.target = 'hidden_iframe'; // 非表示のiframeをターゲットに
+    form.style.display = 'none';
 
-        const result = await response.json();
+    // パラメータを設定
+    const params = {
+        action: 'checkStatus',
+        id_token: googleUser.id_token
+    };
 
-        if (result.status === 'success') {
-            updateSubscriptionUI(result.isSubscribed);
-        } else {
-            throw new Error(result.message || 'ステータスの確認に失敗しました。');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert(error.message);
+    for (const key in params) {
+        const hiddenField = document.createElement('input');
+        hiddenField.type = 'hidden';
+        hiddenField.name = key;
+        hiddenField.value = params[key];
+        form.appendChild(hiddenField);
     }
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form); // 送信後にフォームを削除
 }
 
 /**
  * サブスクリプションの状態に応じてUIを更新する
- * @param {boolean} isSubscribed 登録済みかどうか
  */
 function updateSubscriptionUI(isSubscribed) {
     const statusEl = document.getElementById('subscription-status');
@@ -107,7 +98,6 @@ function updateSubscriptionUI(isSubscribed) {
     }
 }
 
-
 /**
  * ログアウト処理
  */
@@ -119,27 +109,39 @@ function logout() {
     document.getElementById('subscription-status').textContent = '';
     document.getElementById('subscription-status').classList.remove('active', 'inactive');
     document.getElementById('member-content').style.display = 'none';
-    document.getElementById('subscribe-button-container').style.display = 'none';
+    document.getElementById('subscribe-button-container').style.display = 'block'; // ログアウト後も表示
 }
-
-function redirectIfSubmitted() {
-  if (submitted) {
-    // 決済ページへのリダイレクトはGAS側で行うため、ここでは何もしない
-    // もしくは、成功メッセージを表示するなど
-    console.log("Form submitted");
-    submitted = false; // Reset for next time
-    // 必要であれば、ここでサブスクリプションの状態を再チェック
-    setTimeout(checkSubscriptionStatus, 1000); // 少し待ってからステータス確認
-  }
-}
-
 
 // --- イベントリスナー ---
 document.addEventListener('DOMContentLoaded', () => {
     // ログアウトボタン
     document.getElementById('logout-button').addEventListener('click', logout);
 
-    // iframeのロードイベントを監視
-    const iframe = document.querySelector('iframe[name="hidden_iframe"]');
-    iframe.onload = redirectIfSubmitted;
+    // GASからのメッセージ(postMessage)を受信
+    window.addEventListener('message', (event) => {
+        // 送信元のオリジンを確認 (セキュリティ対策)
+        // YOUR_GAS_WEB_APP_URLからオリジンを動的に生成
+        const gasOrigin = new URL(GAS_WEB_APP_URL).origin;
+        if (event.origin !== gasOrigin && !GAS_WEB_APP_URL.startsWith('https://script.google.com')) { // GASのドメインも許可
+            // return; // 開発中はコメントアウトして確認
+        }
+
+        try {
+            const data = event.data; // JSON.parseはGAS側で行うため不要
+
+            if (data && data.action === 'checkStatusResult') {
+                if (data.status === 'success') {
+                    updateSubscriptionUI(data.isSubscribed);
+                } else {
+                    throw new Error(data.message || 'ステータスの確認に失敗しました。');
+                }
+            } else if (data && data.action === 'error') {
+                 throw new Error(data.message || 'GASでエラーが発生しました。');
+            }
+
+        } catch (error) {
+            console.error('Message handling error:', error);
+            alert(error.message);
+        }
+    });
 });
