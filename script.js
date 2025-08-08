@@ -1,6 +1,6 @@
 // --- 設定項目 ---
 // GAS(Google Apps Script)のWebアプリのURL
-const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxH7OOb3gTXxzXXGaJ6Prp2f8yNjlSghU0-ead3PYvSg3CY3nssnH6nEMcv3k3Oi4Vc/exec';
+const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxyT03WmMJFbnvafdHuD5Ku8PGVbdKCjDQhUkqAmqX9G06K8hSUdITmZxNsI6nTZaAi/exec';
 // --- 設定項目ここまで ---
 
 let googleUser = null;
