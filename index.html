@@ -32,8 +32,11 @@
             <h2 id="welcome-message"></h2>
             <p>サブスクリプション状況: <span id="subscription-status"></span></p>
             <div id="subscribe-button-container">
-                <!-- フォームではなく、動的にURLが設定されるリンクに変更 -->
-                <a href="#" id="subscribe-link" class="btn-custom" style="display: none;">月額1000円で登録する</a>
+                <form id="checkout-form" method="POST" action="YOUR_GAS_WEB_APP_URL" target="hidden_iframe">
+                    <input type="hidden" name="id_token" id="id_token_field">
+                    <input type="hidden" name="action" value="createCheckoutSession">
+                    <button type="submit" id="subscribe-button">月額1000円で登録する</button>
+                </form>
             </div>
             <div id="member-content" style="display:none;">
                 <h3>会員限定コンテンツ</h3>
@@ -43,6 +46,9 @@
         </div>
     </main>
 
+    <!-- GASとの通信に使用する非表示のiframe -->
+    <iframe name="hidden_iframe" style="display:none;"></iframe>
+
     <footer>
         <p>&copy; 2024 サブスクリプションサービス</p>
     </footer>
@@ -50,4 +56,4 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="script.js"></script>
 </body>
-</html>    
+</html>
