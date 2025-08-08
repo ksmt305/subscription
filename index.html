@@ -31,6 +31,14 @@
         <div id="user-view" style="display:none;">
             <h2 id="welcome-message"></h2>
             <p>サブスクリプション状況: <span id="subscription-status"></span></p>
+            
+            <!-- デバッグ用ボタン -->
+            <div style="margin: 1rem 0; padding: 1rem; background-color: #f8f9fa; border: 1px dashed #ccc;">
+                <h4>デバッグ用</h4>
+                <button onclick="manualStatusCheck()" style="background-color: #6c757d;">手動でステータス確認</button>
+                <button onclick="console.log('GAS URL:', GAS_WEB_APP_URL)" style="background-color: #6c757d;">GAS URL確認</button>
+            </div>
+            
             <div id="subscribe-button-container">
                 <form id="checkout-form" method="POST" action="YOUR_GAS_WEB_APP_URL" target="hidden_iframe">
                     <input type="hidden" name="id_token" id="id_token_field">
